@@ -1,0 +1,18 @@
+# Информация о приложении
+app:
+  # Номер версии сборки МС
+  version: "0.0.1"
+
+  # Название приложения
+  name: "ProxyCacheServer"
+
+  # Отображаемое имя сервиса
+  displayName: "Proxy Cache Server"
+
+  # Описание сервиса
+  description: "A proxy cache server written on the go-lang allows you to have hot cached data from external APIs"
+
+# Данные для запуска сервера
+server:
+  host: "0.0.0.0"
+  port: 8383

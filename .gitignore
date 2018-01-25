@@ -3,6 +3,8 @@
 *.dll
 *.so
 *.dylib
+/bin/*
+/src/ProxyCacheServer/ProxyCacheServer
 
 # Test binary, build with `go test -c`
 *.test
@@ -12,3 +14,8 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+# Project-local GB vendors/cache
+/pkg/*
+/vendor/*
+!/vendor/manifest
