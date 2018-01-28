@@ -1,7 +1,8 @@
 /*
 http://localhost:8383/v1/ping/
 http://localhost:8383/v1/get/
-http://localhost:8383/v1/get/https://www.google.ru/
+http://localhost:8383/v1/get/?url=https://www.google.ru/
+http://localhost:8383/v1/get/?url=https://api.bitfinex.com/v1/pubticker/sntusd
 */
 
 package main
@@ -221,6 +222,9 @@ func main() {
 
 	// Сервис для кешера
 	webServer.Map(cache)
+
+	// Маппинг конфига
+	webServer.Map(configuration)
 
 	// Структура приложения
 	app := &App{

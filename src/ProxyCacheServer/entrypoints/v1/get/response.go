@@ -18,7 +18,5 @@ func NewResponse(value string) *Response {
 
 // Валидатор структуры Response
 func (this *Response) Validate() (bool, error) {
-	result, err := govalidator.ValidateStruct(this)
-
-	return result, err
+	return govalidator.ValidateStruct(this)
 }
