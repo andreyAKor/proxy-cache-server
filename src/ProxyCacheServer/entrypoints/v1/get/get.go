@@ -17,6 +17,12 @@ import (
 	memCache "github.com/patrickmn/go-cache"
 )
 
+// Структура таблицы Cache
+type Cache struct {
+	Request  *Request  // Данные запроса
+	Response *Response // Данные ответа
+}
+
 // Обработчик запроса на get
 func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, params martini.Params) (int, []byte) {
 	// Структура запроса
@@ -33,7 +39,8 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 
 	// Получаем ответ из кеша.
 	if data, found := mc.Get(cacheId); found {
-		response = data.(*Response)
+		cache := data.(Cache)
+		response = cache.Response
 	} else { // Если в кеше ответов нету
 		var err error
 
@@ -44,11 +51,13 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 		}
 
 		// Обработчик callback на уборщик мусора из кеша (уборщик устаревшего кеша)
-		mc.OnEvicted(func(key string, value interface{}) {
+		mc.OnEvicted(func(key string, data interface{}) {
 			fmt.Printf("OnEvicted: %v\n", key)
 
+			cache := data.(Cache)
+
 			// Формирует кеш ответа на запрос
-			_, err := MakeResponseCache(key, request, mc)
+			_, err := MakeResponseCache(key, cache.Request, mc)
 			if err != nil {
 				panic(err.Error())
 			}
@@ -160,8 +169,14 @@ func MakeResponseCache(cacheId string, request *Request, mc *memCache.Cache) (*R
 		return nil, err
 	}
 
+	// Данные кеша
+	cache := Cache{
+		Request:  request,
+		Response: response,
+	}
+
 	// Храним значение переменной в кэше
-	mc.Set(cacheId, response, (time.Duration(request.Inteval) * time.Second))
+	mc.Set(cacheId, cache, (time.Duration(request.Inteval) * time.Second))
 
 	return response, nil
 }
