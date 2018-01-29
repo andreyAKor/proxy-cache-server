@@ -88,7 +88,7 @@ func (p *program) Stop(s service.Service) error {
 // Инициализация кешера
 func InitCache() (*memCache.Cache, error) {
 	// Create a cache with a default expiration time of 1 hours, and which purges expired items every 10 minutes
-	cache := memCache.New(time.Minute, 10*time.Minute)
+	cache := memCache.New(time.Second, time.Second)
 
 	return cache, nil
 }

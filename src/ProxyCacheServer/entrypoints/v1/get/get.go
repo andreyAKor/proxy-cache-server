@@ -1,11 +1,12 @@
 package get
 
 import (
-	//"fmt"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	//"ProxyCacheServer/structs"
 	"ProxyCacheServer/config"
@@ -17,32 +18,51 @@ import (
 )
 
 // Обработчик запроса на get
-func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, cache *memCache.Cache, params martini.Params) (int, []byte) {
+func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, params martini.Params) (int, []byte) {
 	// Структура запроса
 	request := PrepareRequestFromWebContext(ctx)
 	if _, err := request.Validate(); err != nil {
-		return http.StatusBadRequest, encoder.Must(enc.Encode(map[string]string{
-			"error": err.Error(),
-		}))
+		return SendError(enc, err)
 	}
 
-	// TODO
-	value, err := MakeRequest(request)
-	if err != nil {
-		return http.StatusBadRequest, encoder.Must(enc.Encode(map[string]string{
-			"error": err.Error(),
-		}))
-	}
+	// Идентификатор кеша
+	cacheId := request.Url
 
-	// Структура ответа
-	response := NewResponse(string(value))
-	if _, err := response.Validate(); err != nil {
-		return http.StatusBadRequest, encoder.Must(enc.Encode(map[string]string{
-			"error": err.Error(),
-		}))
+	// Ответ
+	response := &Response{}
+
+	// Получаем ответ из кеша.
+	if data, found := mc.Get(cacheId); found {
+		response = data.(*Response)
+	} else { // Если в кеше ответов нету
+		var err error
+
+		// Формирует кеш ответа на запрос
+		response, err = MakeResponseCache(cacheId, request, mc)
+		if err != nil {
+			return SendError(enc, err)
+		}
+
+		// Обработчик callback на уборщик мусора из кеша (уборщик устаревшего кеша)
+		mc.OnEvicted(func(key string, value interface{}) {
+			fmt.Printf("OnEvicted: %v\n", key)
+
+			// Формирует кеш ответа на запрос
+			_, err := MakeResponseCache(key, request, mc)
+			if err != nil {
+				panic(err.Error())
+			}
+		})
 	}
 
 	return http.StatusOK, encoder.Must(enc.Encode(response))
+}
+
+// Формирует контент об ошибке
+func SendError(enc encoder.Encoder, err error) (int, []byte) {
+	return http.StatusBadRequest, encoder.Must(enc.Encode(map[string]string{
+		"error": err.Error(),
+	}))
 }
 
 // Подготовка структуры Request из GET параметров
@@ -69,26 +89,46 @@ func PrepareRequestFromWebContext(ctx *web.Context) *Request {
 		params["url"], _ = url.QueryUnescape(ctx.Params["url"])
 	}
 
-	request := NewRequest(params["url"], 10, ctx.Request.UserAgent(), ctx.Request.Method, ctx.Request.Proto)
+	request := NewRequest(params["url"], 10, ctx.Request)
 
 	// Интервал (периодичность) опроса URL-адреса в секундах
 	if len(ctx.Params["inteval"]) > 0 {
 		request.Inteval, _ = strconv.Atoi(ctx.Params["inteval"])
 	}
 
-	// HTTP содержимое клиента
-	request.Referer = ctx.Request.Referer()
-	request.BasicAuthUsername, request.BasicAuthPassword, _ = ctx.Request.BasicAuth()
-	request.Cookies = ctx.Request.Cookies()
-	request.Header = ctx.Request.Header
-
 	return request
 }
 
-// Делает запрос по указанному URL внешнего API
+// Делает запрос по указанному URL
 func MakeRequest(request *Request) ([]byte, error) {
-	// by http://polyglot.ninja/golang-making-http-requests/
-	resp, err := http.Get(request.Url)
+	/*
+		// by http://polyglot.ninja/golang-making-http-requests/
+		resp, err := http.Get(request.Url)
+		if err != nil {
+			return nil, err
+		}
+	*/
+
+	// Структура HTTP-клиента
+	client := http.Client{}
+
+	// Формируем запрос
+	req, err := http.NewRequest("GET", request.Url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Готовим HTTP-данные для запроса
+	//request.Request.UserAgent()
+	req.Method = request.Request.Method
+	req.Proto = request.Request.Proto
+	//req.Method = request.Request.Referer()
+	//req.Method = request.Request.BasicAuth()
+	//req.Method = request.Request.Cookies()
+	//req.Header = request.Request.Header
+
+	// Совершаем запрос по указанному URL
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -104,4 +144,24 @@ func MakeRequest(request *Request) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// Формирует кеш ответа на запрос
+func MakeResponseCache(cacheId string, request *Request, mc *memCache.Cache) (*Response, error) {
+	// Делает запрос по указанному URL
+	value, err := MakeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Структура ответа
+	response := NewResponse(string(value))
+	if _, err := response.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Храним значение переменной в кэше
+	mc.Set(cacheId, response, (time.Duration(request.Inteval) * time.Second))
+
+	return response, nil
 }

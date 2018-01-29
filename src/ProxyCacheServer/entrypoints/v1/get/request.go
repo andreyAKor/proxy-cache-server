@@ -10,30 +10,17 @@ import (
 
 // Структура запроса для запроса get
 type Request struct {
-	Url     string `valid:"required,length(1|2048)"` // Опрашиваемый URL-адрес
-	Inteval int    `valid:"required"`                // Интервал (периодичность) опроса URL-адреса в секундах
-
-	// HTTP содержимое клиента
-	UserAgent         string         `valid:"required"` // UserAgent браузера
-	Method            string         `valid:"required"` // Метод HTTP-запроса
-	Proto             string         `valid:"required"` // Версия HTTP-протокола
-	Referer           string         `valid:"-"`        // Откуда пришёл браузер
-	BasicAuthUsername string         `valid:"-"`        // Имя пользователя для basic-авторизации
-	BasicAuthPassword string         `valid:"-"`        // Пароль для basic-авторизации
-	Cookies           []*http.Cookie `valid:"-"`        // Список cookie-данных
-	Header            http.Header    `valid:"-"`        // Список HTTP-заголовков
+	Url     string        `valid:"required,length(1|2048)"` // Опрашиваемый URL-адрес
+	Inteval int           `valid:"required"`                // Интервал (периодичность) опроса URL-адреса в секундах
+	Request *http.Request `valid:"-"`                       // Содержимое HTTP-запроса
 }
 
 // Конструктор структуры Request
-func NewRequest(url string, inteval int, userAgent, method, proto string) *Request {
+func NewRequest(url string, inteval int, request *http.Request) *Request {
 	return &Request{
 		Url:     url,
 		Inteval: inteval,
-
-		// HTTP содержимое клиента
-		UserAgent: userAgent,
-		Method:    method,
-		Proto:     proto,
+		Request: request,
 	}
 }
 
