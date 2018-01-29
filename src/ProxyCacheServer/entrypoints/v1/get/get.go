@@ -26,7 +26,7 @@ type Cache struct {
 // Обработчик запроса на get
 func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, params martini.Params) (int, []byte) {
 	// Структура запроса
-	request := PrepareRequestFromWebContext(ctx)
+	request := PrepareRequest(configuration, ctx)
 	if _, err := request.Validate(); err != nil {
 		return SendError(enc, err)
 	}
@@ -75,7 +75,7 @@ func SendError(enc encoder.Encoder, err error) (int, []byte) {
 }
 
 // Подготовка структуры Request из GET параметров
-func PrepareRequestFromWebContext(ctx *web.Context) *Request {
+func PrepareRequest(configuration *config.Configuration, ctx *web.Context) *Request {
 	/*
 		fmt.Printf("======================================================\n")
 		fmt.Printf("UserAgent: %v\n", ctx.Request.UserAgent())
@@ -98,7 +98,7 @@ func PrepareRequestFromWebContext(ctx *web.Context) *Request {
 		params["url"], _ = url.QueryUnescape(ctx.Params["url"])
 	}
 
-	request := NewRequest(params["url"], 10, ctx.Request)
+	request := NewRequest(params["url"], configuration.Request.Interval, ctx.Request)
 
 	// Интервал (периодичность) опроса URL-адреса в секундах
 	if len(ctx.Params["inteval"]) > 0 {
