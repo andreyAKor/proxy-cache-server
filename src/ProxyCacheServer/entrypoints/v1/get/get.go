@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	//"ProxyCacheServer/structs"
 	"ProxyCacheServer/config"
 
 	"github.com/codegangsta/martini-contrib/web"
@@ -17,15 +16,9 @@ import (
 	memCache "github.com/patrickmn/go-cache"
 )
 
-// Структура таблицы Cache
-type Cache struct {
-	Request  *Request  // Данные запроса
-	Response *Response // Данные ответа
-}
-
 // Обработчик запроса на get
 func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, params martini.Params) (int, []byte) {
-	// Структура запроса
+	// Подготовка структуры Request из GET параметров
 	request := PrepareRequest(configuration, ctx)
 	if _, err := request.Validate(); err != nil {
 		return SendError(enc, err)
@@ -39,7 +32,10 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 
 	// Получаем ответ из кеша.
 	if data, found := mc.Get(cacheId); found {
-		cache := data.(Cache)
+		// Получаем структуру кеша
+		cache := data.(*Cache)
+
+		// Получаем структуру ответа
 		response = cache.Response
 	} else { // Если в кеше ответов нету
 		var err error
@@ -54,7 +50,8 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 		mc.OnEvicted(func(key string, data interface{}) {
 			fmt.Printf("OnEvicted: %v\n", key)
 
-			cache := data.(Cache)
+			// Получаем структуру кеша
+			cache := data.(*Cache)
 
 			// Формирует кеш ответа на запрос
 			_, err := MakeResponseCache(key, cache.Request, mc)
@@ -98,6 +95,7 @@ func PrepareRequest(configuration *config.Configuration, ctx *web.Context) *Requ
 		params["url"], _ = url.QueryUnescape(ctx.Params["url"])
 	}
 
+	// Формируем структуру запроса
 	request := NewRequest(params["url"], configuration.Request.Interval, ctx.Request)
 
 	// Интервал (периодичность) опроса URL-адреса в секундах
@@ -170,9 +168,9 @@ func MakeResponseCache(cacheId string, request *Request, mc *memCache.Cache) (*R
 	}
 
 	// Данные кеша
-	cache := Cache{
-		Request:  request,
-		Response: response,
+	cache := NewCache(request, response)
+	if _, err := cache.Validate(); err != nil {
+		return nil, err
 	}
 
 	// Храним значение переменной в кэше

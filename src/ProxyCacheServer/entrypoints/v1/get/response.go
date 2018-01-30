@@ -6,13 +6,13 @@ import (
 
 // Структура ответа запроса get
 type Response struct {
-	Value string `json:"value" valid:"required"` // Значение
+	Body string `json:"body" valid:"required"` // Тело ответа
 }
 
 // Конструктор структуры Response
-func NewResponse(value string) *Response {
+func NewResponse(body string) *Response {
 	return &Response{
-		Value: value,
+		Body: body,
 	}
 }
 
