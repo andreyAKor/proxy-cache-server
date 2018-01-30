@@ -126,13 +126,19 @@ func MakeRequest(request *Request) ([]byte, error) {
 	}
 
 	// Готовим HTTP-данные для запроса
-	//request.Request.UserAgent()
 	req.Method = request.Request.Method
 	req.Proto = request.Request.Proto
-	//req.Method = request.Request.Referer()
-	//req.Method = request.Request.BasicAuth()
-	//req.Method = request.Request.Cookies()
-	//req.Header = request.Request.Header
+	req.ProtoMajor = request.Request.ProtoMajor
+	req.ProtoMinor = request.Request.ProtoMinor
+
+	// Принудительно назначаем заголовок: Accept-Encoding = deflate
+	// чтобы небыло геммора с gzip содержимым
+	request.Request.Header.Set("Accept-Encoding", "deflate")
+
+	// Пробрасываем список HTTP-заголовков
+	for name, _ := range request.Request.Header {
+		req.Header.Set(name, request.Request.Header.Get(name))
+	}
 
 	// Совершаем запрос по указанному URL
 	resp, err := client.Do(req)
