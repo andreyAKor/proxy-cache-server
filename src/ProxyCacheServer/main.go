@@ -118,13 +118,12 @@ func InitWebServer(configuration *config.Configuration) (*martini.ClassicMartini
 }
 
 // Инициализация конфига приложения
-func InitConfiguration() (*config.Configuration, error) {
+func InitConfiguration(configFlag *string) (*config.Configuration, error) {
 	// Имя файла yml-конфига
 	viper.SetConfigName("ProxyCacheServer")
 
 	// По умолчанию конфиг лежит тамже, где и приложение
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/etc/ProxyCacheServer")
+	viper.AddConfigPath(*configFlag)
 
 	// Структура конфига
 	var configuration config.Configuration
@@ -201,10 +200,26 @@ func InitService(app *App, svcFlag *string) error {
 	return nil
 }
 
+// Инициализация аргументов приложения
+func InitFlags() (*string, *string) {
+	// Управление системные сервис-менеджером (install/uninstall/start/stop)
+	svcFlag := flag.String("service", "", "Control the system service.")
+
+	// Путь к конфиг файлу
+	// По умолчанию находится тамже, где и само приложение
+	configFlag := flag.String("config", ".", "Path to the config file (default \".\").")
+	flag.Parse()
+
+	return svcFlag, configFlag
+}
+
 // Точка входа
 func main() {
+	// Инициализация аргументов приложения
+	svcFlag, configFlag := InitFlags()
+
 	// Инициализация конфига приложения
-	configuration, err := InitConfiguration()
+	configuration, err := InitConfiguration(configFlag)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -238,9 +253,6 @@ func main() {
 	// иначе приложение будет работать как обычная программа
 	if service.ChosenSystem() != nil {
 		fmt.Printf("Service system is available: %v\n", service.AvailableSystems())
-
-		svcFlag := flag.String("service", "", "Control the system service.")
-		flag.Parse()
 
 		// Инициализация инстанса сервиса
 		if err := InitService(app, svcFlag); err != nil {
