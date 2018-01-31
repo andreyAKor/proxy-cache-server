@@ -1,9 +1,12 @@
 /*
 http://localhost:8383/v1/ping/
+
 http://localhost:8383/v1/get/
 http://localhost:8383/v1/get/?url=https://www.google.ru/
 http://localhost:8383/v1/get/?url=https://api.bitfinex.com/v1/pubticker/sntusd
 http://localhost:8383/v1/get/?url=http://webumka.ru/inf.php
+
+http://localhost:8383/v1/flushall/
 */
 
 package main
@@ -17,6 +20,7 @@ import (
 	"time"
 
 	"ProxyCacheServer/config"
+	"ProxyCacheServer/entrypoints/v1/flushall"
 	"ProxyCacheServer/entrypoints/v1/get"
 	"ProxyCacheServer/entrypoints/v1/ping"
 
@@ -113,6 +117,7 @@ func InitWebServer(configuration *config.Configuration) (*martini.ClassicMartini
 	// Роутинг запросов
 	m.Get("/v1/ping/", ping.Ping)
 	m.Get("/v1/get/(.*)", get.Get)
+	m.Get("/v1/flushall/", flushall.Flushall)
 
 	return m, nil
 }
