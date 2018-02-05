@@ -1,18 +1,22 @@
 package get
 
 import (
+	"net/http"
+
 	"github.com/asaskevich/govalidator"
 )
 
 // Структура ответа запроса get
 type Response struct {
-	Body string `json:"body" valid:"required"` // Тело ответа
+	Body     string         `valid:"required"` // Тело ответа
+	Response *http.Response `valid:"-"`        // Содержимое HTTP-ответа
 }
 
 // Конструктор структуры Response
-func NewResponse(body string) *Response {
+func NewResponse(body string, response *http.Response) *Response {
 	return &Response{
-		Body: body,
+		Body:     body,
+		Response: response,
 	}
 }
 

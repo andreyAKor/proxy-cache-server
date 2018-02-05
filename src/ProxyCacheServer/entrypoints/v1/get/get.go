@@ -11,13 +11,12 @@ import (
 	"ProxyCacheServer/config"
 
 	"github.com/codegangsta/martini-contrib/web"
-	"github.com/go-martini/martini"
 	"github.com/martini-contrib/encoder"
 	memCache "github.com/patrickmn/go-cache"
 )
 
 // Обработчик запроса на get
-func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, params martini.Params) (int, []byte) {
+func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Encoder, mc *memCache.Cache, w http.ResponseWriter) (int, []byte) {
 	// Подготовка структуры Request из GET параметров
 	request := PrepareRequest(configuration, ctx)
 	if _, err := request.Validate(); err != nil {
@@ -61,7 +60,13 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 		})
 	}
 
-	return http.StatusOK, encoder.Must(enc.Encode(response))
+	// Пробрасываем список HTTP-заголовков в ответ
+	for name, _ := range response.Response.Header {
+		w.Header().Set(name, response.Response.Header.Get(name))
+	}
+
+	// Пробрасываем нативный ответ от запрашиваемого URL
+	return response.Response.StatusCode, []byte(response.Body)
 }
 
 // Формирует контент об ошибке
@@ -107,22 +112,14 @@ func PrepareRequest(configuration *config.Configuration, ctx *web.Context) *Requ
 }
 
 // Делает запрос по указанному URL
-func MakeRequest(request *Request) ([]byte, error) {
-	/*
-		// by http://polyglot.ninja/golang-making-http-requests/
-		resp, err := http.Get(request.Url)
-		if err != nil {
-			return nil, err
-		}
-	*/
-
+func MakeRequest(request *Request) ([]byte, *http.Response, error) {
 	// Структура HTTP-клиента
 	client := http.Client{}
 
 	// Формируем запрос
 	req, err := http.NewRequest("GET", request.Url, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Готовим HTTP-данные для запроса
@@ -135,7 +132,7 @@ func MakeRequest(request *Request) ([]byte, error) {
 	// чтобы небыло геммора с gzip содержимым
 	request.Request.Header.Set("Accept-Encoding", "deflate")
 
-	// Пробрасываем список HTTP-заголовков
+	// Пробрасываем список HTTP-заголовков на опрашиваемый сервер
 	for name, _ := range request.Request.Header {
 		req.Header.Set(name, request.Request.Header.Get(name))
 	}
@@ -143,7 +140,7 @@ func MakeRequest(request *Request) ([]byte, error) {
 	// Совершаем запрос по указанному URL
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// После закроем соединение
@@ -153,22 +150,22 @@ func MakeRequest(request *Request) ([]byte, error) {
 	// Получаем контент запрашиваемого хоста
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return body, nil
+	return body, resp, nil
 }
 
 // Формирует кеш ответа на запрос
 func MakeResponseCache(cacheId string, request *Request, mc *memCache.Cache) (*Response, error) {
 	// Делает запрос по указанному URL
-	value, err := MakeRequest(request)
+	body, resp, err := MakeRequest(request)
 	if err != nil {
 		return nil, err
 	}
 
 	// Структура ответа
-	response := NewResponse(string(value))
+	response := NewResponse(string(body), resp)
 	if _, err := response.Validate(); err != nil {
 		return nil, err
 	}
