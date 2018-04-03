@@ -1,7 +1,6 @@
 package get
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"ProxyCacheServer/config"
+	resp "ProxyCacheServer/entrypoints/v1/response"
 
 	"github.com/codegangsta/martini-contrib/web"
 	"github.com/martini-contrib/encoder"
@@ -20,7 +20,7 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 	// Подготовка структуры Request из GET параметров
 	request := PrepareRequest(configuration, ctx)
 	if _, err := request.Validate(); err != nil {
-		return SendError(enc, err)
+		return resp.Fault(enc, err)
 	}
 
 	// Идентификатор кеша
@@ -42,13 +42,11 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 		// Формирует кеш ответа на запрос
 		response, err = MakeResponseCache(cacheId, request, mc)
 		if err != nil {
-			return SendError(enc, err)
+			return resp.Fault(enc, err)
 		}
 
 		// Обработчик callback на уборщик мусора из кеша (уборщик устаревшего кеша)
 		mc.OnEvicted(func(key string, data interface{}) {
-			fmt.Printf("OnEvicted: %v\n", key)
-
 			// Получаем структуру кеша
 			cache := data.(*Cache)
 
@@ -69,27 +67,8 @@ func Get(configuration *config.Configuration, ctx *web.Context, enc encoder.Enco
 	return response.Response.StatusCode, []byte(response.Body)
 }
 
-// Формирует контент об ошибке
-func SendError(enc encoder.Encoder, err error) (int, []byte) {
-	return http.StatusBadRequest, encoder.Must(enc.Encode(map[string]string{
-		"error": err.Error(),
-	}))
-}
-
 // Подготовка структуры Request из GET параметров
 func PrepareRequest(configuration *config.Configuration, ctx *web.Context) *Request {
-	/*
-		fmt.Printf("======================================================\n")
-		fmt.Printf("UserAgent: %v\n", ctx.Request.UserAgent())
-		fmt.Printf("Method: %v\n", ctx.Request.Method)
-		fmt.Printf("Proto: %v\n", ctx.Request.Proto)
-		fmt.Printf("Referer: %v\n", ctx.Request.Referer())
-		//fmt.Printf("BasicAuth: %v\n", ctx.Request.BasicAuth())
-		fmt.Printf("Cookies: %v\n", ctx.Request.Cookies())
-		fmt.Printf("Header: %v\n", ctx.Request.Header)
-		fmt.Printf("======================================================\n")
-	*/
-
 	// Обязательные GET-параметры
 	params := map[string]string{
 		"url": "",

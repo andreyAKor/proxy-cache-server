@@ -12,11 +12,12 @@ app:
   # Описание сервиса
   description: "A proxy cache server written on the go-lang allows you to have hot cached data from external APIs"
 
-# Данные для запуска сервера
+# Данные для запуска http-сервера
 server:
   host: "0.0.0.0"
   port: 8383
 
 # Данные для запросов
 request:
+  # Интервал опроса по умолчанию
   interval: 3
