@@ -19,6 +19,6 @@ func NewCache(request *Request, response *Response) *Cache {
 }
 
 // Валидатор структуры Cache
-func (this *Cache) Validate() (bool, error) {
-	return govalidator.ValidateStruct(this)
+func (c *Cache) Validate() (bool, error) {
+	return govalidator.ValidateStruct(c)
 }

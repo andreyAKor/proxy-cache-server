@@ -19,10 +19,10 @@ import (
 	"strconv"
 	"time"
 
-	"ProxyCacheServer/config"
-	"ProxyCacheServer/entrypoints/v1/flushall"
-	"ProxyCacheServer/entrypoints/v1/get"
-	"ProxyCacheServer/entrypoints/v1/ping"
+	"github.com/andreyAKor/proxy-cache-server/internal/config"
+	"github.com/andreyAKor/proxy-cache-server/internal/entrypoints/v1/flushall"
+	"github.com/andreyAKor/proxy-cache-server/internal/entrypoints/v1/get"
+	"github.com/andreyAKor/proxy-cache-server/internal/entrypoints/v1/ping"
 
 	"github.com/codegangsta/martini-contrib/web"
 	"github.com/go-martini/martini"
@@ -93,7 +93,7 @@ func (p *program) Stop(s service.Service) error {
 // Инициализация кешера
 func InitCache() (*memCache.Cache, error) {
 	// Create a cache with a default expiration time of 1 hours, and which purges expired items every 10 minutes
-	cache := memCache.New(time.Second, time.Second)
+	cache := memCache.New(time.Millisecond*10, time.Millisecond*10)
 
 	return cache, nil
 }

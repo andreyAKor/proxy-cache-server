@@ -21,6 +21,6 @@ func NewResponse(body string, response *http.Response) *Response {
 }
 
 // Валидатор структуры Response
-func (this *Response) Validate() (bool, error) {
-	return govalidator.ValidateStruct(this)
+func (r *Response) Validate() (bool, error) {
+	return govalidator.ValidateStruct(r)
 }

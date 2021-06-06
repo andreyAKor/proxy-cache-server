@@ -1,5 +1,0 @@
-package get
-
-import (
-	"testing"
-)

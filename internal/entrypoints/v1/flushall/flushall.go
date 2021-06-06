@@ -3,8 +3,8 @@ package flushall
 import (
 	"net/http"
 
-	"ProxyCacheServer/config"
-	resp "ProxyCacheServer/entrypoints/v1/response"
+	"github.com/andreyAKor/proxy-cache-server/internal/config"
+	resp "github.com/andreyAKor/proxy-cache-server/internal/entrypoints/v1/response"
 
 	"github.com/codegangsta/martini-contrib/web"
 	"github.com/go-martini/martini"
